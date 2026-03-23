@@ -1,20 +1,50 @@
 import json
 import os
+from enum import Enum
 from importlib.resources import files
 from typing import Any, Dict, Optional
 
-from appdirs import user_config_dir
+from appdirs import user_config_dir, user_data_dir
 from loguru import logger
 
 
+class StorageTarget(Enum):
+    CONFIG = "config"
+    DATA = "data"
+
+
 class SettingsManager:
-    def __init__(self, filename: str, app_name: str, config_dir: Optional[str] = None):
-        self.filename = filename
-        self.app_name = app_name
-        self.config_dir = os.path.join(user_config_dir(), app_name)
-        self.user_config_path = os.path.join(self.config_dir, f"{filename}.json")
+    app_name: Optional[str] = None
+
+    def __init__(
+        self,
+        file_name: str,
+        sub_dir: str = "",
+        app_name: Optional[str] = None,
+        target: StorageTarget = StorageTarget.CONFIG,
+    ):
+        self.filename = file_name
+
+        if self.app_name is None:
+            raise ValueError("App name not provided!")
+
+        if app_name is None:
+            app_name = self.app_name
+
+        if target == StorageTarget.CONFIG:
+            base_dir = user_config_dir(app_name)
+        else:
+            base_dir = user_data_dir(app_name)
+
+        self.user_config_path = os.path.join(base_dir, sub_dir, f"{file_name}.json")
+
         self.settings: Dict[str, Any] = {}
         self.ensure_default_config()
+
+    @classmethod
+    def set_app_name(cls, app_name: str) -> None:
+        """Set the app name globally for all instances."""
+        cls.app_name = app_name
 
     def set(self, key: str, value: Any) -> None:
         self.settings[key] = value
@@ -50,10 +80,15 @@ class SettingsManager:
         return self.settings
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SettingsManager":
-        settings = cls(
-            data.get("name", ""), data.get("path", ""), data.get("app_name", "")
-        )
+    def from_dict(
+        cls,
+        data: Dict[str, Any],
+        file_name: str,
+        sub_dir: str,
+        app_name: Optional[str] = None,
+        target: StorageTarget = StorageTarget.CONFIG,
+    ) -> "SettingsManager":
+        settings = cls(file_name, sub_dir, app_name, target)
         settings.settings = data
         return settings
 
