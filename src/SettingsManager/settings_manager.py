@@ -22,19 +22,23 @@ class SettingsManager:
         sub_dir: str = "",
         app_name: Optional[str] = None,
         target: StorageTarget = StorageTarget.CONFIG,
+        custom_base_dir: Optional[str] = None,
     ):
         self.filename = file_name
 
-        if self.app_name is None:
-            raise ValueError("App name not provided!")
-
-        if app_name is None:
-            app_name = self.app_name
-
-        if target == StorageTarget.CONFIG:
-            base_dir = user_config_dir(app_name)
+        if custom_base_dir is not None:
+            base_dir = custom_base_dir
         else:
-            base_dir = user_data_dir(app_name)
+            if self.app_name is None and app_name is None:
+                raise ValueError("App name not provided!")
+
+            if app_name is None:
+                app_name = self.app_name
+
+            if target == StorageTarget.CONFIG:
+                base_dir = user_config_dir(app_name)
+            else:
+                base_dir = user_data_dir(app_name)
 
         self.user_config_path = os.path.join(base_dir, sub_dir, f"{file_name}.json")
 
@@ -84,11 +88,12 @@ class SettingsManager:
         cls,
         data: Dict[str, Any],
         file_name: str,
-        sub_dir: str,
+        sub_dir: str = "",
         app_name: Optional[str] = None,
         target: StorageTarget = StorageTarget.CONFIG,
+        custom_base_dir: Optional[str] = None,
     ) -> "SettingsManager":
-        settings = cls(file_name, sub_dir, app_name, target)
+        settings = cls(file_name, sub_dir, app_name, target, custom_base_dir)
         settings.settings = data
         return settings
 
